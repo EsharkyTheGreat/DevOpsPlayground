@@ -20,3 +20,14 @@
 - [ ] Run Code Coverage Analysis
 - [ ] Build Docker Image
 - [ ] Push Docker Image to Docker Hub
+
+### Nodejs Backend CI Pipeline
+
+- [ ] Clone Repository and checkout branch
+- [ ] (Optional) Build Nodejs Project
+- [ ] (Optional) Run Unit Tests
+- [ ] (Optional) Run Integration Tests
+- [ ] Run Static Code Analysis
+- [ ] Run Code Coverage Analysis
+- [ ] Build Docker Image
+- [ ] Push Docker Image to Docker Hub
