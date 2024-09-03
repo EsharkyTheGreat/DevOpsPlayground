@@ -36,7 +36,7 @@ def file_size_check(mssg):
 def file_delivery(mssg):
     pass
 
-processing_function_map: dict[str,function] = {
+processing_function_map = {
     "send_to_topic" : send_to_topic,
     "create_file" : create_file,
     "file_count_check" : file_count_check,
