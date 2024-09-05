@@ -1,4 +1,25 @@
 services:
+  ingestion-service:
+    image: sample-python-kafka-service
+    volumes:
+      - transient_storage:/mnt/data
+    env_file:
+      - .env
+    environment:
+      SERVICE_NAME: ingestion-service
+    ports:
+      - 6001:8080
+  file-creation-service:
+    image: sample-python-kafka-service
+    volumes:
+      - transient_storage:/mnt/data
+    env_file:
+      - .env
+    environment:
+      SERVICE_NAME: file-creation-service
+    ports:
+      - 6002:8080
+
   zoo1:
     image: confluentinc/cp-zookeeper:7.3.2
     hostname: zoo1
@@ -9,7 +30,7 @@ services:
       ZOOKEEPER_CLIENT_PORT: 2181
       ZOOKEEPER_SERVER_ID: 1
       ZOOKEEPER_SERVERS: zoo1:2888:3888
- 
+
   kafka:
     image: confluentinc/cp-kafka:7.3.2
     hostname: kafka1
@@ -46,7 +67,7 @@ services:
       - 2757:8080
     volumes:
       - transient_storage:/data
- 
+
 volumes:
   transient_storage:
     external: true

@@ -1,10 +1,28 @@
 import os
+import uuid
+import logging
 import json
-from fastapi import FastAPI 
+import shutil
+from fastapi import FastAPI, File, UploadFile 
 from confluent_kafka import Consumer, Producer, KafkaException
 import threading
+import sys
 
 app = FastAPI()
+
+FILE_PATH_FOLDER = "/mnt/data"
+METADATA = {'trace_id':'000-00-00'}
+
+logger = logging.getLogger(__name__)
+syslog = logging.StreamHandler(stream=sys.stdout)
+filelog = logging.FileHandler("app.log","a")
+formatter = logging.Formatter('%(asctime)s|%(levelname)s|%(trace_id)s|- %(message)s')
+syslog.setFormatter(formatter)
+filelog.setFormatter(formatter)
+logger.addHandler(syslog)
+logger.addHandler(filelog)
+logger = logging.LoggerAdapter(logger,METADATA)
+logger.setLevel(logging.INFO)
 
 # Load configuration from environment variables
 SERVICE_NAME = os.getenv('SERVICE_NAME', 'default_service')
@@ -12,7 +30,7 @@ KAFKA_BOOTSTRAP_SERVERS = os.getenv('KAFKA_BOOTSTRAP_SERVERS', 'localhost:9092')
 GROUP_ID = SERVICE_NAME
 
 # Load service-specific configuration
-service_config: dict[str,dict[str,str]] = json.load(open('config.json'))
+service_config: dict[str,dict[str,str]] = json.load(open(FILE_PATH_FOLDER+'/'+'config.json'))
 
 
 # Default to a specific service if not found
@@ -62,6 +80,7 @@ metrics = {
 }
 
 def consume_and_process():
+    global METADATA
     while True:
         msg = consumer.poll(timeout=1.0)
         if msg is None:
@@ -72,20 +91,22 @@ def consume_and_process():
         # Increment received message counter
         metrics['messages_received'] += 1
         
-        # Process message
-        key = msg.key().decode('utf-8')
         value = msg.value().decode('utf-8')
 
-        print(msg,key,value)
+        value = json.loads(value)
+        
+        if 'trace_id' in value:
+            METADATA['trace_id'] = value['trace_id']    
 
-        # if key == input_topic:
-        #     processed_message = process_func(value)
-        #
-        #     # Forward the processed message
-        #     producer.produce(output_topic, value=processed_message)
-        #     metrics['messages_sent'] += 1
-        #
-        # producer.flush()
+        logger.debug(f"Kafka: {value=}")
+
+        if msg.topic == input_topic:
+            processed_message = processing_function_map[processing_function_name](value) if processing_function_name in processing_function_map else None
+            if processed_message:
+            # Forward the processed message
+                producer.produce(output_topic, value=processed_message)
+                metrics['messages_sent'] += 1
+                producer.flush()
 
 # Start a thread for Kafka consumer
 thread = threading.Thread(target=consume_and_process)
@@ -107,7 +128,17 @@ def get_service_metadata():
 def get_metrics():
     return metrics
 
-@app.get("/consume-message")
-def consume_message():
-    # For demo purpose, this might just trigger the consume method
-    return {"status": "consumed"}
+if SERVICE_NAME == "ingestion-service":
+    @app.post("/uploadfile")
+    async def upload_file(file: UploadFile = File(...)):
+        trace_id = str(uuid.uuid4())
+        METADATA['trace_id'] = trace_id
+        logger.info(f"Got File for {trace_id}")
+        os.mkdir(f"{FILE_PATH_FOLDER}/{trace_id}")
+        file_location = f"{FILE_PATH_FOLDER}/{trace_id}/{file.filename}"
+        with open(file_location,"wb") as buf:
+            shutil.copyfileobj(file.file,buf)
+        mssg = {"trace_id":trace_id,"file_location":file_location}
+        if output_topic:
+            producer.produce(output_topic,json.dumps(mssg).encode('utf-8'))
+        return {"trace_id":trace_id,"file_location":file_location,"message":"file sucessfully uploaded"}
