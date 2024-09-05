@@ -1,25 +1,24 @@
 {
   "ingestion-service": {
-    "output_topic" : "new_data_topic",
-    "processing_function": "send_to_topic"
+    "output_topic": "new_data_topic"
   },
   "file-creation-service": {
-    "input_topic" : "new_data_topic",
-    "processing_function" : "create_file",
+    "input_topic": "new_data_topic",
+    "processing_function": "create_file",
     "output_topic": "new_file_topic"
   },
   "file-count-check": {
     "input_topic": "new_file_topic",
-    "processing_function" : "file_count_check",
-    "output_topic" : "file_finished_topic"
+    "processing_function": "file_count_check",
+    "output_topic": "file_finished_topic"
   },
   "file-size-check": {
-    "input_topic" : "new_file_topic",
-    "processing_function" : "file_size_check",
-    "output_topic" : "file_finished_topic"
+    "input_topic": "new_file_topic",
+    "processing_function": "file_size_check",
+    "output_topic": "file_finished_topic"
   },
   "file-delivery": {
-    "input_topic" : "file_finished_topic",
-    "processing_function" : "file_delivery"
+    "input_topic": "file_finished_topic",
+    "processing_function": "file_delivery"
   }
 }

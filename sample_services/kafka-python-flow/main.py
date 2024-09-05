@@ -3,8 +3,9 @@ import uuid
 import logging
 import json
 import shutil
+import pandas as pd
 from fastapi import FastAPI, File, UploadFile 
-from confluent_kafka import Consumer, Producer, KafkaException
+from kafka import KafkaConsumer,KafkaProducer
 import threading
 import sys
 
@@ -16,13 +17,13 @@ METADATA = {'trace_id':'000-00-00'}
 logger = logging.getLogger(__name__)
 syslog = logging.StreamHandler(stream=sys.stdout)
 filelog = logging.FileHandler("app.log","a")
-formatter = logging.Formatter('%(asctime)s|%(levelname)s|%(trace_id)s|- %(message)s')
+formatter = logging.Formatter('| %(asctime)s | %(levelname)s | %(trace_id)s |- %(message)s')
 syslog.setFormatter(formatter)
 filelog.setFormatter(formatter)
 logger.addHandler(syslog)
 logger.addHandler(filelog)
 logger = logging.LoggerAdapter(logger,METADATA)
-logger.setLevel(logging.INFO)
+logger.setLevel(logging.DEBUG)
 
 # Load configuration from environment variables
 SERVICE_NAME = os.getenv('SERVICE_NAME', 'default_service')
@@ -31,7 +32,6 @@ GROUP_ID = SERVICE_NAME
 
 # Load service-specific configuration
 service_config: dict[str,dict[str,str]] = json.load(open(FILE_PATH_FOLDER+'/'+'config.json'))
-
 
 # Default to a specific service if not found
 if SERVICE_NAME not in service_config:
@@ -43,19 +43,29 @@ output_topic = config.get("output_topic")
 processing_function_name = config.get("processing_function")
 
 
-def send_to_topic(mssg):
-    pass
 def create_file(mssg):
-    pass
+    file_location = mssg['file_location']
+    logger.info(f"Overwriting file at {file_location}")
+    df = pd.DataFrame({"Name":["Esharky","Esharky Jr"],"Age":[21,12],"Job":["SDE","Student"]})
+    logger.info(f"Dataframe: {df}")
+    df.to_csv(file_location)
+    return mssg
+
 def file_count_check(mssg):
-    pass
+    logger.info("Checking File Count")
+    logger.warn("File Count Mismatch")
+    return mssg
+
 def file_size_check(mssg):
-    pass
+    logger.info("Checking File Size")
+    logger.error("File Size too high")
+    return mssg
+
 def file_delivery(mssg):
-    pass
+    logger.info("File delivered successfully")
+    return mssg
 
 processing_function_map = {
-    "send_to_topic" : send_to_topic,
     "create_file" : create_file,
     "file_count_check" : file_count_check,
     "file_size_check" :file_size_check,
@@ -63,13 +73,15 @@ processing_function_map = {
 }
 
 # Initialize Kafka Consumer and Producer
-consumer = Consumer({
-    'bootstrap.servers': KAFKA_BOOTSTRAP_SERVERS,
-    'group.id': GROUP_ID,
-    'auto.offset.reset': 'earliest'
-})
+consumer = KafkaConsumer(
+    bootstrap_servers=KAFKA_BOOTSTRAP_SERVERS,
+    auto_offset_reset= 'earliest',
+    enable_auto_commit=True,
+    value_deserializer=lambda v : json.loads(v.decode('utf-8'))
+)
 
-producer = Producer({'bootstrap.servers': KAFKA_BOOTSTRAP_SERVERS})
+producer = KafkaProducer(bootstrap_servers=KAFKA_BOOTSTRAP_SERVERS,value_serializer=lambda v : json.dumps(v).encode('utf-8'))
+
 if input_topic:
     consumer.subscribe([input_topic])
 
@@ -81,19 +93,14 @@ metrics = {
 
 def consume_and_process():
     global METADATA
-    while True:
-        msg = consumer.poll(timeout=1.0)
-        if msg is None:
-            continue
-        if msg.error():
-            raise KafkaException(msg.error())
+    for msg in consumer:
         
         # Increment received message counter
         metrics['messages_received'] += 1
         
-        value = msg.value().decode('utf-8')
+        value = msg.value
 
-        value = json.loads(value)
+        logger.info(f"Received Message : {value}")
         
         if 'trace_id' in value:
             METADATA['trace_id'] = value['trace_id']    
@@ -101,10 +108,12 @@ def consume_and_process():
         logger.debug(f"Kafka: {value=}")
 
         if msg.topic == input_topic:
+            logger.debug(f"Message Topic : {msg.topic}")
             processed_message = processing_function_map[processing_function_name](value) if processing_function_name in processing_function_map else None
-            if processed_message:
+            logger.info(f"Forwarding Output: {processed_message}")
+            if processed_message and output_topic:
             # Forward the processed message
-                producer.produce(output_topic, value=processed_message)
+                producer.send(output_topic, value=processed_message)
                 metrics['messages_sent'] += 1
                 producer.flush()
 

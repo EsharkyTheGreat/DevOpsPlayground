@@ -1,0 +1,41 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kafkaui
+  namespace: kafka
+  labels:
+    app: kafkaui
+spec:
+  selector:
+    matchLabels:
+      app: kafkaui
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: kafkaui
+    spec:
+      containers:
+        - name: kafkaui
+          image: provectuslabs/kafka-ui
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: DYNAMIC_CONFIG_ENABLED
+              value: "true"
+          ports:
+            - containerPort: 8080
+      restartPolicy: Always
+---
+apiVersion: v1
+kind: Service
+metadata:
+  namespace: kafka
+  name: kafkaui
+spec:
+  type: NodePort
+  ports:
+    - targetPort: 8080
+      port: 8080
+      nodePort: 32080
+  selector:
+    app: kafkaui

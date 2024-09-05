@@ -19,6 +19,36 @@ services:
       SERVICE_NAME: file-creation-service
     ports:
       - 6002:8080
+  file-count-service:
+    image: sample-python-kafka-service
+    volumes:
+      - transient_storage:/mnt/data
+    env_file:
+      - .env
+    environment:
+      SERVICE_NAME: file-count-check
+    ports:
+      - 6003:8080
+  file-size-service:
+    image: sample-python-kafka-service
+    volumes:
+      - transient_storage:/mnt/data
+    env_file:
+      - .env
+    environment:
+      SERVICE_NAME: file-size-check
+    ports:
+      - 6004:8080
+  file-delivery-service:
+    image: sample-python-kafka-service
+    volumes:
+      - transient_storage:/mnt/data
+    env_file:
+      - .env
+    environment:
+      SERVICE_NAME: file-delivery
+    ports:
+      - 6005:8080
 
   zoo1:
     image: confluentinc/cp-zookeeper:7.3.2
