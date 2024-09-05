@@ -149,5 +149,5 @@ if SERVICE_NAME == "ingestion-service":
             shutil.copyfileobj(file.file,buf)
         mssg = {"trace_id":trace_id,"file_location":file_location}
         if output_topic:
-            producer.produce(output_topic,json.dumps(mssg).encode('utf-8'))
+            producer.send(output_topic,value=mssg)
         return {"trace_id":trace_id,"file_location":file_location,"message":"file sucessfully uploaded"}

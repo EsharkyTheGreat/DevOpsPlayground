@@ -28,7 +28,7 @@ spec:
       # - Each init container must complete successfully before the next one starts.
       containers:
         - name: ingestion
-          image: sample-python-kafka-service
+          image: sample-python-kafka-service:2
           imagePullPolicy: IfNotPresent
           # resources:
           #   requests:
@@ -55,20 +55,36 @@ spec:
           #   failureThreshold: 3
           #   periodSeconds: 10
           env:
-            - name: DB_HOST
-              valueFrom:
-                configMapKeyRef:
-                  name: ingestion
-                  key: DB_HOST
+            # - name: DB_HOST
+            #   valueFrom:
+            #     configMapKeyRef:
+            #       name: ingestion
+            #       key: DB_HOST
+            - name: KAFKA_BOOTSTRAP_SERVERS
+              value: kafka-0.kafka-svc.kafka.svc.cluster.local
+            - name: SERVICE_NAME
+              value: ingestion-service
           ports:
-            - containerPort: 80
+            - containerPort: 8080
               name: ingestion
           volumeMounts:
-            - name: localtime
-              mountPath: /etc/localtime
+            - name: commonfs
+              mountPath: /mnt/data
       volumes:
-        - name: localtime
-          hostPath:
-            path: /usr/share/zoneinfo/Asia/Taipei
+        - name: commonfs
+          persistentVolumeClaim:
+            claimName: commonfspvclaim
       restartPolicy: Always
 ---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ingestion
+spec:
+  type: NodePort
+  ports:
+    - targetPort: 8080
+      port: 8080
+      nodePort: 32601
+  selector:
+    app: ingestion
