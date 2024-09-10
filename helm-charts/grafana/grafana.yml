@@ -1,0 +1,7 @@
+persistence:
+  type: pvc
+  enabled: true
+
+plugins:
+  - digrich-bubblechart-panel
+  - grafana-clock-panel
