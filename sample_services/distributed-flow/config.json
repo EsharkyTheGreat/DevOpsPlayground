@@ -1,0 +1,53 @@
+{
+  "topics": {
+    "file-ingestion": {
+      "topicPayloadSpec": "ingestionSpec",
+      "consumers": [
+        {
+          "service": "file-ingestion-service",
+          "operation": "acceptFilesOperation",
+          "then": "file-translation",
+          "catch": "error-file-ingestion"
+        }
+      ]
+    },
+    "file-translation" : {
+      "topicPayloadSpec" : "translationInfo",
+      "consumers": [
+        {
+          "service" : "file-translation-service",
+          "operation" : "translateFileOperation",
+          "then": "file-processing",
+          "catch" : "error-file-translation"
+        }
+      ]
+    },
+    "file-processing" : {
+      "topicPayloadSpec" : "fileInformation",
+      "consumers": [
+        {
+          "service": "file-size-service",
+          "operation": "checkFileSizeOperation",
+          "then": "file-delivery",
+          "catch": "error-file-processing"
+        },
+        {
+          "service": "file-integrity-service",
+          "operation": "checkFileIntegrityOperation",
+          "then": "file-delivery",
+          "catch": "error-file-processing"
+        }
+      ]
+    },
+    "file-delivery": {
+      "topicPayloadSpec": "fileDeliveryOrder",
+      "consumers": [
+        {
+          "service": "file-delivery-service",
+          "operation": "deliveryFileOperation",
+          "catch": "error-file-delivery"
+        }
+      ]
+    }
+  }
+}
