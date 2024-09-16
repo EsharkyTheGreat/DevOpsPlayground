@@ -1,14 +1,64 @@
 services:
-#  delivery-service:
-#    image: cdi-delivery-service
-#    ports:
-#      - "8806:8806"
-#    env_file:
-#      - "local.env"
-#    volumes:
-#      - clinical_storage:/mnt/data
-#    depends_on:
-#      - kafka
+  file-ingestion-service:
+    image: distributed-flow
+    ports:
+      - "8801:8080"
+    env_file:
+      - "local.env"
+    environment:
+      SERVICE_NAME: file-ingestion-service
+    volumes:
+      - clinical_storage:/mnt/data
+    depends_on:
+      - kafka
+  file-translation-service:
+    image: distributed-flow
+    ports:
+      - "8802:8080"
+    env_file:
+      - "local.env"
+    environment:
+      SERVICE_NAME: file-translation-service
+    volumes:
+      - clinical_storage:/mnt/data
+    depends_on:
+      - kafka
+  file-size-service:
+    image: distributed-flow
+    ports:
+      - "8803:8080"
+    env_file:
+      - "local.env"
+    environment:
+      SERVICE_NAME: file-size-service
+    volumes:
+      - clinical_storage:/mnt/data
+    depends_on:
+      - kafka
+  file-integrity-service:
+    image: distributed-flow
+    ports:
+      - "8804:8080"
+    env_file:
+      - "local.env"
+    environment:
+      SERVICE_NAME: file-integrity-service
+    volumes:
+      - clinical_storage:/mnt/data
+    depends_on:
+      - kafka
+  file-delivery-service:
+    image: distributed-flow
+    ports:
+      - "8805:8080"
+    env_file:
+      - "local.env"
+    environment:
+      SERVICE_NAME: file-delivery-service
+    volumes:
+      - clinical_storage:/mnt/data
+    depends_on:
+      - kafka
   grafana:
     image: grafana/grafana-enterprise
     hostname: grafana

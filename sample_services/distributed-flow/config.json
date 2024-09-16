@@ -1,11 +1,11 @@
 {
   "topics": {
     "file-ingestion": {
-      "topicPayloadSpec": "ingestionSpec",
+      "topicPayloadSpec": "ingestionInfo",
       "consumers": [
         {
           "service": "file-ingestion-service",
-          "operation": "acceptFilesOperation",
+          "operation": "ingestFileOperation",
           "then": "file-translation",
           "catch": "error-file-ingestion"
         }
